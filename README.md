@@ -70,7 +70,7 @@ into one ordered answer:
 
 ```mermaid
 flowchart LR
-    U[/api/ask + FOUNDRY_USE_TEAM=1] --> O[orchestrator-v2<br/>synthesises findings]
+   U["/api/ask<br/>FOUNDRY_USE_TEAM=1"] --> O[orchestrator-v2<br/>synthesises findings]
     O --> E[entitlements] --> KB[(arrivo-kb<br/>category=entitlements)]
     O --> FS[first_steps] --> KB2[(arrivo-kb<br/>category=first_steps)]
     O --> H[housing] --> KB3[(arrivo-kb<br/>category=housing)]
@@ -203,4 +203,43 @@ Notes:
    provided to the backend. Use your existing `backend/.env` (created by `scripts/deploy.sh`) or
    pass environment variables via the `docker-compose.yml` if you prefer.
 - For production, tune the nginx cache headers, add TLS, and pin image versions.
+
+Running with environment variables (recommended)
+
+1. Create a local `.env` for the backend by copying the example and filling in values:
+
+```bash
+cp backend/.env.example backend/.env
+# Edit backend/.env and supply your Azure / Foundry values (or set FOUNDRY_USE_TEAM=0 to disable team mode)
+```
+
+2. The provided `docker-compose.yml` does not automatically load `backend/.env`. There are two simple options:
+
+- Option A (preferred): Create a `docker-compose.override.yml` in the repo root to point the backend at `backend/.env`:
+
+```yaml
+version: '3.8'
+services:
+  backend:
+    env_file:
+      - ./backend/.env
+```
+
+Then run:
+
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.override.yml up --build
+```
+
+- Option B: Export the required environment variables into your shell before running `docker-compose up`.
+
+Notes on minimal testing: if you don't have Foundry/Azure keys yet but want to test the UI/layout locally, set `FOUNDRY_USE_TEAM=0` and leave other keys blank; the backend will still start but grounded features will be disabled or return abstentions.
+
+If you prefer to pass an env-file directly to the backend service with `docker run`, use:
+
+```bash
+docker compose build
+docker compose up -d
+# or: docker run --env-file backend/.env -p 8000:8000 <backend-image>
+```
 
