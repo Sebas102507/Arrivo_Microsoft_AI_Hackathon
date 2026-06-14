@@ -1,5 +1,8 @@
 # Arrivo 🦘
 
+
+https://github.com/user-attachments/assets/300553b7-5f41-4c1f-919b-aaaebc1ba646
+
 **Your first 60 days in Australia, reasoned out — with sources.**
 
 Arrivo is a settlement-planning reasoning agent for new migrants arriving in Australia.
