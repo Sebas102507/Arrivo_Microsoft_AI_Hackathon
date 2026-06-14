@@ -1,7 +1,12 @@
 # Arrivo 🦘
 
 
-https://github.com/user-attachments/assets/300553b7-5f41-4c1f-919b-aaaebc1ba646
+
+
+https://github.com/user-attachments/assets/6295bfda-9fb9-4f14-985d-2a19de5c47d2
+
+<img width="1641" height="984" alt="Screenshot 2026-06-14 at 8 13 10 PM" src="https://github.com/user-attachments/assets/421a91e4-754c-4193-9b32-9b5327919222" />
+
 
 **Your first 60 days in Australia, reasoned out — with sources.**
 
