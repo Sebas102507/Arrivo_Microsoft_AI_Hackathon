@@ -1,0 +1,52 @@
+[
+  {
+    "title": "Medicare enrolment for migrants",
+    "url": "https://www.servicesaustralia.gov.au/enrolling-medicare",
+    "category": "entitlements"
+  },
+  {
+    "title": "Newly arrived residents waiting periods (Centrelink)",
+    "url": "https://www.servicesaustralia.gov.au/newly-arrived-residents-waiting-period",
+    "category": "entitlements"
+  },
+  {
+    "title": "Tax file number — apply (foreign passport holders)",
+    "url": "https://www.ato.gov.au/individuals-and-families/tax-file-number/apply-for-a-tfn/foreign-passport-holders-permanent-migrants-and-temporary-visitors-tfn-application",
+    "category": "first_steps"
+  },
+  {
+    "title": "Opening a bank account in Australia (Moneysmart)",
+    "url": "https://moneysmart.gov.au/banking",
+    "category": "first_steps"
+  },
+  {
+    "title": "NSW driver licence for overseas licence holders",
+    "url": "https://www.nsw.gov.au/driving-boating-and-transport/driver-and-rider-licences/visiting-or-moving-to-nsw/visiting-from-overseas-or-interstate",
+    "category": "transport"
+  },
+  {
+    "title": "Renting a home in NSW — tenants rights",
+    "url": "https://www.nsw.gov.au/housing-and-construction/renting-a-place-to-live",
+    "category": "housing"
+  },
+  {
+    "title": "NSW rental bonds and starting a tenancy",
+    "url": "https://www.fairtrading.nsw.gov.au/housing-and-property/renting/starting-a-tenancy",
+    "category": "housing"
+  },
+  {
+    "title": "Enrolling your child in a NSW public school (temporary residents)",
+    "url": "https://www.nsw.gov.au/education-and-training/primary-and-high-school/starting-primary-school/enrolling-your-child/international-students-and-visa-holders",
+    "category": "education"
+  },
+  {
+    "title": "Beginning a Life in Australia (Home Affairs settlement guide)",
+    "url": "https://immi.homeaffairs.gov.au/help-support/meeting-our-requirements/australian-values",
+    "category": "general"
+  },
+  {
+    "title": "Opal card and public transport NSW",
+    "url": "https://transportnsw.info/tickets-opal/opal",
+    "category": "transport"
+  }
+]

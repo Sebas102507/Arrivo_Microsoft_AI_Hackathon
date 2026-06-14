@@ -1,0 +1,206 @@
+"""Arrivo API — FastAPI wrapper around the reasoning agent."""
+import json
+import os
+import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).parent / ".env")
+
+# Make the repo-root `foundry` package importable from the backend.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from fastapi import FastAPI, HTTPException  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+from pydantic import BaseModel, Field  # noqa: E402
+
+from agent import ArrivoAgent  # noqa: E402
+
+app = FastAPI(title="Arrivo", version="0.1.0")
+_agent: ArrivoAgent | None = None
+_foundry_agent = None  # lazy v2 Foundry agent; optional
+
+
+def get_agent() -> ArrivoAgent:
+    global _agent
+    if _agent is None:
+        _agent = ArrivoAgent()
+    return _agent
+
+
+def get_foundry_agent():
+    """Lazily build the v2 Foundry agent client (only used by /api/ask).
+
+    Uses the single grounded agent, or the multi-agent orchestrator when
+    FOUNDRY_USE_TEAM=1.
+    """
+    global _foundry_agent
+    if _foundry_agent is None:
+        if not os.environ.get("FOUNDRY_PROJECT_ENDPOINT"):
+            raise HTTPException(
+                status_code=503,
+                detail="Foundry agent not configured. Deploy infra + run "
+                       "`python foundry/create_v2.py` to populate backend/.env.",
+            )
+        use_team = os.environ.get("FOUNDRY_USE_TEAM", "").lower() in ("1", "true", "yes")
+        if use_team and os.environ.get("FOUNDRY_V2_ORCHESTRATOR_NAME"):
+            from foundry.v2 import FoundryV2Team  # noqa: PLC0415
+            _foundry_agent = FoundryV2Team()
+        else:
+            from foundry.v2 import FoundryV2Agent  # noqa: PLC0415
+            _foundry_agent = FoundryV2Agent()
+    return _foundry_agent
+
+
+def _reflection_enabled(agent) -> bool:
+    """True if a reflection/evaluator agent is configured (single or team)."""
+    return bool(
+        getattr(agent, "evaluator_name", None)
+        or getattr(getattr(agent, "base", None), "evaluator_name", None)
+    )
+
+
+class Profile(BaseModel):
+    visa_subclass: str = Field(examples=["482"])
+    family_size: int = Field(ge=1, le=12, default=1)
+    children: bool = False
+    weekly_budget: int = Field(ge=100, le=3000, examples=[650])
+    work_suburb: str = Field(default="", examples=["Parramatta"])
+    dwelling: str = Field(default="unit", pattern="^(unit|house)$")
+
+
+@app.post("/api/plan")
+def make_plan(profile: Profile) -> dict:
+    try:
+        return get_agent().plan(profile.model_dump())
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+class Question(BaseModel):
+    question: str = Field(min_length=3, max_length=1000,
+                          examples=["How do I enrol in Medicare as a new permanent resident?"])
+    reflect: bool = Field(default=True,
+                          description="Run the evaluator/reflection loop before returning.")
+
+
+@app.post("/api/ask")
+def ask(q: Question) -> dict:
+    """Grounded Q&A via the Microsoft Foundry Agent Service, with a reflection pass.
+
+    The agent answers only from the `arrivo-kb` Azure AI Search knowledge base and
+    returns citations; it abstains (INSUFFICIENT_EVIDENCE) when sources fall short.
+    When an evaluator agent is configured (and `reflect` is true), the draft is
+    critiqued and revised once before it is returned, and the verdict is included.
+    """
+    try:
+        agent = get_foundry_agent()
+        if q.reflect and _reflection_enabled(agent):
+            result = agent.ask_with_reflection(q.question)
+            return {
+                "answer": result.answer,
+                "citations": result.citations,
+                "grounded": bool(result.citations) and "INSUFFICIENT_EVIDENCE" not in result.answer,
+                "evaluation": result.evaluation,
+                "passed": result.passed,
+                "revisions": result.revisions,
+                "reflection_trace": result.trace,
+            }
+        result = agent.ask(q.question)
+        return {
+            "answer": result.answer,
+            "citations": result.citations,
+            "run_status": result.run_status,
+            "grounded": bool(result.citations) and "INSUFFICIENT_EVIDENCE" not in result.answer,
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+class ChatTurn(BaseModel):
+    role: str
+    content: str = ""
+
+
+class IntakeChat(BaseModel):
+    messages: list[ChatTurn] = Field(default_factory=list,
+                                      description="The onboarding conversation so far.")
+
+
+@app.post("/api/chat")
+def agent_chat(c: IntakeChat) -> dict:
+    """Full copilot turn via Foundry agents (specialists + orchestrator + evaluator).
+
+    Returns the assistant reply, suggestions, profile fields, and a complete
+    journey payload — all generated by agents, nothing hard-coded in the UI.
+    """
+    from foundry_chat import chat as foundry_chat  # noqa: PLC0415
+    try:
+        return foundry_chat([m.model_dump() for m in c.messages])
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/api/intake_chat")
+def intake_chat(c: IntakeChat) -> dict:
+    """Legacy alias — routes through Foundry agents (same as /api/chat)."""
+    return agent_chat(c)
+
+
+class Situation(BaseModel):
+    situation: str = Field(default="", max_length=4000,
+                           examples=["I'm 25, here with my partner — both on student visas. Where do I start?"])
+    answers: dict = Field(default_factory=dict,
+                          description="Answered follow-up questions keyed by question id (legacy wizard).")
+    fields: dict | None = Field(default=None,
+                                description="Profile fields extracted by the onboarding chat.")
+    messages: list[ChatTurn] | None = Field(default=None,
+                                            description="Full conversation for agent-driven journey rebuild.")
+
+
+@app.post("/api/journey")
+def journey(s: Situation) -> dict:
+    """Legacy alias — journey is now returned inline by /api/chat.
+
+    If `messages` is provided, re-runs the agent team; otherwise returns an
+    empty shell (call /api/chat instead).
+    """
+    if s.messages:
+        from foundry_chat import chat as foundry_chat  # noqa: PLC0415
+        try:
+            result = foundry_chat([m.model_dump() for m in s.messages])
+            return result.get("journey") or {}
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return {"profile": {"summary": ""}, "steps": [], "catalog": {}, "suburbs": [],
+            "places": [], "stats": {}}
+
+
+_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+
+
+@app.get("/api/locations")
+def locations() -> dict:
+    """Suburb geo-data + places for the map (open NSW reference data)."""
+    data = json.loads((_DATA_DIR / "suburbs_sydney.json").read_text())
+    return {"suburbs": data.get("suburbs", []), "places": data.get("places", [])}
+
+
+@app.get("/api/health")
+def health() -> dict:
+    return {
+        "status": "ok",
+        "chat_backend": "foundry_agents",
+        "foundry_agent": bool(os.environ.get("FOUNDRY_V2_AGENT_NAME")),
+        "team_available": bool(os.environ.get("FOUNDRY_V2_ORCHESTRATOR_NAME")),
+        "evaluator": bool(os.environ.get("FOUNDRY_V2_EVALUATOR_NAME")),
+    }
+
+
+# Serve the frontend (must be mounted last so /api routes win)
+app.mount("/", StaticFiles(directory=Path(__file__).parent.parent / "frontend", html=True), name="frontend")

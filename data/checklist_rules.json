@@ -1,0 +1,94 @@
+{
+  "_note": "Settlement task dependency graph. 'requires' = hard prerequisites (topological ordering). 'visa_conditions' restricts a step to visa groups: pr (permanent), temp_work (e.g. 482/485), student (500). Empty = applies to all.",
+  "steps": [
+    {
+      "id": "sim_card",
+      "label": "Get an Australian SIM card / phone number",
+      "requires": [],
+      "visa_conditions": [],
+      "why_first": "Nearly every other application (bank, TFN, Medicare, rental) asks for an Australian mobile number."
+    },
+    {
+      "id": "bank_account",
+      "label": "Open an Australian bank account",
+      "requires": ["sim_card"],
+      "visa_conditions": [],
+      "tip": "Within 6 weeks of arrival most banks accept just your passport (reduced ID requirements). After 6 weeks you need full 100-point ID, which is much harder for newcomers."
+    },
+    {
+      "id": "tfn",
+      "label": "Apply for a Tax File Number (TFN)",
+      "requires": ["sim_card"],
+      "visa_conditions": [],
+      "tip": "Free, online via ATO, requires a valid visa. You can start work without it but employers must withhold maximum tax until you provide one (you have 28 days)."
+    },
+    {
+      "id": "medicare",
+      "label": "Enrol in Medicare (if eligible)",
+      "requires": ["bank_account"],
+      "visa_conditions": ["pr"],
+      "tip": "Most temporary visa holders are NOT eligible and need Overseas Visitor Health Cover instead — the agent must check visa subclass and cite the rule."
+    },
+    {
+      "id": "ovhc",
+      "label": "Confirm Overseas Visitor Health Cover (OVHC) is active",
+      "requires": [],
+      "visa_conditions": ["temp_work", "student"],
+      "tip": "Condition 8501 on most temporary visas requires you to maintain health insurance."
+    },
+    {
+      "id": "centrelink",
+      "label": "Register with Centrelink / check waiting periods",
+      "requires": ["tfn", "bank_account"],
+      "visa_conditions": ["pr"],
+      "tip": "Most new permanent residents face a Newly Arrived Resident's Waiting Period for many payments — the agent should state which and cite."
+    },
+    {
+      "id": "rental_application",
+      "label": "Prepare a rental application pack",
+      "requires": ["bank_account", "tfn"],
+      "visa_conditions": [],
+      "tip": "Newcomer workarounds for missing rental history: offer rent in advance, a larger holding deposit where lawful, an employment contract + payslips, an overseas landlord reference, or a guarantor. Bond is capped at 4 weeks rent in NSW."
+    },
+    {
+      "id": "lease_signed",
+      "label": "Sign a lease and lodge the bond",
+      "requires": ["rental_application"],
+      "visa_conditions": [],
+      "tip": "In NSW the bond must be lodged with the Rental Bonds Online scheme, not held by the landlord."
+    },
+    {
+      "id": "utilities",
+      "label": "Connect electricity, gas and internet",
+      "requires": ["lease_signed"],
+      "visa_conditions": []
+    },
+    {
+      "id": "drivers_licence",
+      "label": "Convert or apply for a NSW driver licence",
+      "requires": ["lease_signed"],
+      "visa_conditions": [],
+      "tip": "Rules differ sharply: permanent residents must convert within 3 months of arrival; temporary visa holders can often keep driving on an overseas licence. Depends on origin country recognition — agent must check and cite."
+    },
+    {
+      "id": "school_enrolment",
+      "label": "Enrol children in school",
+      "requires": ["lease_signed"],
+      "visa_conditions": [],
+      "tip": "Public school enrolment is address-based, so it depends on the lease. Temporary residents may pay fees in NSW depending on visa subclass — agent must check."
+    },
+    {
+      "id": "opal_card",
+      "label": "Get an Opal card for public transport",
+      "requires": [],
+      "visa_conditions": []
+    },
+    {
+      "id": "ahpra_or_skills",
+      "label": "Check professional registration / skills recognition",
+      "requires": ["tfn"],
+      "visa_conditions": [],
+      "tip": "Only relevant for regulated professions (health, teaching, trades, engineering)."
+    }
+  ]
+}

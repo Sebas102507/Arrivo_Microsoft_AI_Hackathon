@@ -1,0 +1,33 @@
+# --- Secrets / environment (NEVER commit — hackathon repos are public) ---
+.env
+.env.*
+!.env.example
+backend/.env
+*.key
+*.pem
+credentials.json
+*secrets*.json
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+
+# --- Knowledge-base local source dumps (may contain copied page text) ---
+ingestion/docs/*.txt
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
